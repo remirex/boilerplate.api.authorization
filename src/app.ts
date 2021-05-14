@@ -1,7 +1,8 @@
 // TODO: 'import reflect metadata'
-// TODO: 'import config file'
 import express from 'express';
-// TODO: 'import Logger'
+
+import config from './config';
+import Logger from './loaders/logger';
 
 async function startServer() {
   const app = express();
@@ -14,12 +15,12 @@ async function startServer() {
    **/
   await require('./loaders').default({ expressApp: app });
 
-  app.listen(3000, () => {
-    // TODO: 'add logger !!!'
-    console.log('Server listening on port: 3000')
+  app.listen(config.port, () => {
+    Logger.info(`Server listening on port: ${config.port}`);
   }).on('error', err => {
+    Logger.error(err);
     process.exit(1);
   });
 }
 
-startServer().then();
+startServer();
