@@ -12,10 +12,13 @@ const app = express();
  * Well, at least in node 10 without babel and at the time of writing
  * So we are using good old require.
  **/
-require('./loaders').default({ expressApp: app });
+require('./loaders').default({expressApp: app});
 
 const server = app.listen(config.port, function () {
   Logger.info(`Webserver is ready and listening on port ${config.port}`);
+}).on('error', err => {
+  Logger.error(err);
+  process.exit(1);
 });
 
 // quit on ctrl-c when running docker in terminal
@@ -40,6 +43,4 @@ function shutdown() {
     process.exit();
   });
 }
-
-module.exports = server;
 

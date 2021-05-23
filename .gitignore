@@ -6,10 +6,21 @@ yarn-debug.log*
 yarn-error.log*
 
 # Dependency directories
-node_modules/
+node_modules
+jspm_packages
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+### OSX ###
+.DS_Store
+.AppleDouble
+.LSOverride
 
 /.idea
-.DS_Store
 
 # dotenv environment variables file
 .env

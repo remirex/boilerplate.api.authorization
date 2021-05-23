@@ -4,7 +4,7 @@ import Logger from './logger';
 
 
 export default async ({ expressApp }: any) => {
-  await mongooseLoader();
+  const mongoConnection = await mongooseLoader();
   Logger.info('DB loaded and connected!');
 
   await expressLoader({ app: expressApp });

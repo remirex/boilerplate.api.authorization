@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Db } from 'mongodb';
+import {Db} from 'mongodb';
 
 import config from '../config';
 
@@ -15,5 +15,6 @@ export default async (): Promise<Db> => {
     useCreateIndex: true,
     useUnifiedTopology: true,
   });
+
   return connection.connection.db;
 }

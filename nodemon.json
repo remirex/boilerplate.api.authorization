@@ -1,11 +1,7 @@
 {
-  "watch": [
-    "src",
-    ".env"
-  ],
-  "ext": "js,ts,json",
-  "ignore": [
-    "src/**/*.spec.ts"
-  ],
-  "exec": "ts-node  --transpile-only ./bin/www.ts"
+  "verbose": true,
+  "watch": ["src/**/*.ts"],
+  "execMap": {
+    "ts": "node --inspect=0.0.0.0:9229 --nolazy -r ts-node/register"
+  }
 }

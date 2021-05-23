@@ -1,8 +1,39 @@
 version: '2.4'
 
 services:
-  node:
+  ts-node-docker:
     build:
       context: .
       args:
         - NODE_ENV=development
+    command: npm run dev
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/opt/node_app/app
+      - ./package.json:/opt/node_app/package.json
+      - ./package-lock.json:/opt/node_app/package-lock.json
+      - notused:/opt/node_app/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - MONGO_USERNAME=root
+      - MONGO_PASSWORD=example
+      - MONGO_HOSTNAME=mongo
+      - MONGO_PORT__=27017
+      - MONGO_DB=example-database
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:4
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: "[ `echo 'db.runCommand(\"ping\").ok' | mongo localhost/example-database --quiet` ] && echo 0 || echo 1"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  notused:

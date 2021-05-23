@@ -1,4 +1,4 @@
-FROM node:slim-14.4.0
+FROM node:12-slim
 
 # set our node environment, either development or production
 # defaults to production, compose overrides this to development on build and run
@@ -6,7 +6,7 @@ ARG NODE_ENV=production
 ENV NODE_ENV $NODE_ENV
 
 # default to port 3000 for node, and 9229 and 9230 (tests) for debug
-ARG PORT=3000
+ARG PORT=4000
 ENV PORT $PORT
 EXPOSE $PORT 9229 9230
 
@@ -27,11 +27,9 @@ COPY --chown=node:node package.json package-lock.json* ./
 RUN npm install --no-optional && npm cache clean --force
 ENV PATH /opt/node_app/node_modules/.bin:$PATH
 
-# ADD HEALTHCHECK !!!!
-
 # copy in our source code last, as it changes the most
 # copy in as node user, so permissions match what we need
 WORKDIR /opt/node_app/app
 COPY --chown=node:node . .
 
-CMD ["nodemon"]
+CMD [ "node", "./src/app.ts" ]
