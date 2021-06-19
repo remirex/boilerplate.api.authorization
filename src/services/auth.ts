@@ -1,6 +1,7 @@
 import {Inject, Service} from 'typedi';
 
 import { IUserInputDTO } from '../interfaces/IUser';
+import { UserStatus } from '../interfaces/types';
 
 @Service()
 export default class AuthService {
@@ -9,7 +10,7 @@ export default class AuthService {
     @Inject('logger') private logger,
   ) {}
 
-  public async register(): Promise<{ message: any }> {
+  public async signup(userInputDTO: IUserInputDTO): Promise<{ message: any }> {
     // validate request
 
     // check if account exist and if is inactive

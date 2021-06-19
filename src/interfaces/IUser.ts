@@ -4,6 +4,7 @@ export interface IUser {
   name: string;
   password: string;
   username: string;
+  status: string;
 }
 
 export interface IUserInputDTO {

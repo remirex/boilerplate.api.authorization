@@ -1,7 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
 
-import logger from '../../loaders/logger';
-
 /**
  * The validate request middleware function validates the body of a request against a Joi schema object.
  * @param req
@@ -21,7 +19,6 @@ export default (req: Request, res: Response, next: NextFunction, schema ) => {
   if (error) {
     const { details } = error;
     const errorsDetail = details.map(i => i);
-    logger.info(errorsDetail);
     const allErrors: any = [];
     errorsDetail.map(item => {
       allErrors.push({
