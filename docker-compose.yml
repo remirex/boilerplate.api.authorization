@@ -18,12 +18,12 @@ services:
       - ./package-lock.json:/opt/node_app/package-lock.json
       - notused:/opt/node_app/app/node_modules
     environment:
-      - NODE_ENV=development
-      - MONGO_USERNAME=root
+      - NODE_ENV=$NODE_ENV
+      - MONGO_USERNAME=$MONGO_USERNAME
       - MONGO_PASSWORD=$MONGO_PASSWORD
       - MONGO_HOSTNAME=mongo
       - MONGO_PORT=$MONGO_PORT
-      - MONGO_DB=example-database
+      - MONGO_DB=$MONGO_DB
     depends_on:
       mongo:
         condition: service_healthy
