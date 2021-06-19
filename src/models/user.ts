@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 
-import { UserRole, UserStatus } from '../interfaces/types'
+import {UserRole, UserStatus} from '../interfaces/types'
 import {IUser} from "../interfaces/IUser";
+import {Password} from '../services/password';
 
 const User = new mongoose.Schema({
   name: {
@@ -49,7 +50,7 @@ const User = new mongoose.Schema({
     expires: Date
   },
   passwordReset: Date
-},{
+}, {
   timestamps: true,
   toJSON: {
     virtuals: true,
@@ -64,6 +65,18 @@ const User = new mongoose.Schema({
       ret.id = ret._id;
     }
   }
+});
+
+User.pre('save', async function (done) {
+  if (this.isModified('password')) {
+    const hashed = await Password.toHash(this.get('password'));
+    this.set('password', hashed);
+  }
+  done();
+});
+
+User.virtual('isVerified').get(function (this: { verified: Date; passwordReset: Date }): boolean {
+  return !!(this.verified || this.passwordReset);
 });
 
 export default mongoose.model<IUser & mongoose.Document>('User', User);
