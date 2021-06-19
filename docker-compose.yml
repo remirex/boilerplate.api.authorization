@@ -1,11 +1,14 @@
 version: '2.4'
 
 services:
-  ts-node-docker:
+  nodejs-auth:
     build:
       context: .
       args:
         - NODE_ENV=development
+    image: nodejs
+    container_name: auth-api
+    restart: unless-stopped
     command: npm run dev
     ports:
       - "4000:4000"
@@ -17,9 +20,9 @@ services:
     environment:
       - NODE_ENV=development
       - MONGO_USERNAME=root
-      - MONGO_PASSWORD=example
+      - MONGO_PASSWORD=$MONGO_PASSWORD
       - MONGO_HOSTNAME=mongo
-      - MONGO_PORT__=27017
+      - MONGO_PORT=$MONGO_PORT
       - MONGO_DB=example-database
     depends_on:
       mongo:
@@ -27,8 +30,12 @@ services:
 
   mongo:
     image: mongo:4
+    container_name: mongo-auth-api
+    restart: unless-stopped
     ports:
       - "27017:27017"
+    volumes:
+      - ./database/seed.js:/docker-entrypoint-initdb.d/seed.js
     healthcheck:
       test: "[ `echo 'db.runCommand(\"ping\").ok' | mongo localhost/example-database --quiet` ] && echo 0 || echo 1"
       interval: 5s

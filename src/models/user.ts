@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 import { UserRole, UserStatus } from '../interfaces/types'
+import {IUser} from "../interfaces/IUser";
 
 const User = new mongoose.Schema({
   name: {
@@ -64,3 +65,5 @@ const User = new mongoose.Schema({
     }
   }
 });
+
+export default mongoose.model<IUser & mongoose.Document>('User', User);

@@ -5,6 +5,7 @@ import config from '../config';
 
 // local development
 let url = `mongodb://${config.mongoHostname}:${config.mongoPort}/${config.mongoDatabase}`;
+// let url = `mongodb://${config.mongoUsername}:${config.mongoPassword}@${config.mongoHostname}:${config.mongoPort}`;
 
 if (process.env.NODE_ENV == 'production') url = `mongodb://${config.mongoUsername}:${config.mongoPassword}@${config.mongoHostname}/${config.mongoDatabase}?retryWrites=true&w=majority`;
 
