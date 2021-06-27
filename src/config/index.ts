@@ -38,4 +38,17 @@ export default {
   api: {
     prefix: '/api',
   },
+
+  clientUrl: process.env.CLIENT_URI,
+
+  /**
+   * Nodemailer email credentials
+   */
+  emails: {
+    user: String(process.env.EMAIL_USER),
+    pass: String(process.env.EMAIL_PASS),
+    from: String(process.env.EMAIL_FROM),
+    host: String(process.env.EMAIL_HOST),
+    port: Number(process.env.EMAIL_PORT),
+  },
 }
