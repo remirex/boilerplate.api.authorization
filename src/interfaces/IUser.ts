@@ -5,6 +5,10 @@ export interface IUser {
   password: string;
   username: string;
   status: string;
+  verificationToken: {
+    token: string,
+    expires: Date
+  };
 }
 
 export interface IUserInputDTO {

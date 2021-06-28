@@ -1,4 +1,5 @@
 import { Container } from 'typedi';
+import nodemailer from 'nodemailer';
 
 import LoggerInstance from './logger';
 import config from '../config';
@@ -11,6 +12,20 @@ export default ({ mongoConnection, models}: { mongoConnection: any; models: { na
 
     // Logger instance
     Container.set('logger', LoggerInstance);
+
+    // Nodemailer instance
+    Container.set(
+      'emailClient',
+      nodemailer.createTransport({
+        host: config.emails.host,
+        port: config.emails.port,
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: config.emails.user,
+          pass: config.emails.pass,
+        },
+      }),
+    );
 
 
   } catch (err) {
