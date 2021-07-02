@@ -51,4 +51,10 @@ export default {
     host: String(process.env.EMAIL_HOST),
     port: Number(process.env.EMAIL_PORT),
   },
+
+  /**
+   * Your secret sauce
+   */
+  jwtSecret: String(process.env.JWT_SECRET),
+  jwtAlgorithm: String(process.env.JWT_ALGO),
 }

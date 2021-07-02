@@ -3,7 +3,7 @@ import { promisify } from 'util';
 
 const scryptAsync = promisify(scrypt);
 
-export class Password {
+export default class Password {
   public static async toHash(password: string) {
     const salt = randomBytes(8).toString('hex');
     const buf = (await scryptAsync(password, salt, 64)) as Buffer;
@@ -11,12 +11,12 @@ export class Password {
     return `${buf.toString('hex')}.${salt}`;
   }
 
-  public async compare(storedPassword: string, suppliedPassword: string) {
+  public static async compare(storedPassword: string, suppliedPassword: string) {
     const [hashedPassword, salt] = storedPassword.split('.');
-    console.log('hashed password', hashedPassword);
-    console.log(salt);
     const buf = (await scryptAsync(suppliedPassword, salt, 64)) as Buffer;
-    console.log('supplied password', buf.toString('hex'));
+
     return buf.toString('hex') === hashedPassword;
   }
 }
+
+

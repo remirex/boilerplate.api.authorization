@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 import {UserRole, UserStatus} from '../interfaces/types'
 import {IUser} from "../interfaces/IUser";
-import {Password} from '../services/password';
+import Password from '../services/password';
 
 const User = new mongoose.Schema({
   name: {

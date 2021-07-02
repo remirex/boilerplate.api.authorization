@@ -12,9 +12,9 @@ const route = Router();
 export default (app: Router) => {
   app.use('/auth', route);
 
-  route.post('/signup', signupSchema, async (req: Request, res: Response, next: NextFunction) => {
+  route.post('/signup', signUpSchema, async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get('logger');
-    logger.debug('Calling Register endpoint with body: %o', req.body);
+    logger.debug('Calling SignUp endpoint with body: %o', req.body);
     try {
       const authServiceInstance = Container.get(AuthService);
       const response = await authServiceInstance.signup(req.body as IUserInputDTO);
@@ -24,9 +24,35 @@ export default (app: Router) => {
       return next(error);
     }
   });
+
+  route.post('/verify', verifySchema, async (req: Request, res: Response, next: NextFunction) => {
+    const logger: Logger = Container.get('logger');
+    logger.debug('Calling Verify Email endpoint with body: %o', req.body);
+    try {
+      const authServiceInstance = Container.get(AuthService);
+      const response = await authServiceInstance.verifyEmail(req.body.token);
+      return res.status(200).json(response);
+    } catch (error) {
+      logger.error('🔥 error: %o', error);
+      return next(error);
+    }
+  });
+
+  route.post('/signin', signInSchema, async (req: Request, res: Response, next: NextFunction) => {
+    const logger: Logger = Container.get('logger');
+    logger.debug('Calling SignIn endpoint with body: %o', req.body);
+    try {
+      const authServiceInstance = Container.get(AuthService);
+      const response = await authServiceInstance.signin(req.body.email, req.body.password, req.ip);
+      return res.status(200).json(response);
+    } catch (error) {
+      logger.error('🔥 error: %o', error);
+      return next(error);
+    }
+  });
 }
 
-function signupSchema(req: Request, res: Response, next: NextFunction) {
+function signUpSchema(req: Request, res: Response, next: NextFunction) {
   const schema = Joi.object({
     name: Joi.string().required(),
     email: Joi.string()
@@ -37,5 +63,22 @@ function signupSchema(req: Request, res: Response, next: NextFunction) {
     repeatPassword: Joi.ref('password'),
     acceptTerms: Joi.boolean().required().invalid(false),
   }).with('password', 'repeatPassword');
+  middleware.joiValidation(req, res, next, schema);
+}
+
+function verifySchema(req: Request, res: Response, next: NextFunction) {
+  const schema = Joi.object({
+    token: Joi.string().required(),
+  });
+  middleware.joiValidation(req, res, next, schema);
+}
+
+function signInSchema(req: Request, res: Response, next: NextFunction) {
+  const schema = Joi.object({
+    email: Joi.string()
+      .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net', 'io'] } })
+      .required(),
+    password: Joi.string().required(),
+  });
   middleware.joiValidation(req, res, next, schema);
 }

@@ -9,6 +9,8 @@ export interface IUser {
     token: string,
     expires: Date
   };
+  verified: number;
+  role: string;
 }
 
 export interface IUserInputDTO {

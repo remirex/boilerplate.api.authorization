@@ -1,18 +1,21 @@
 import { Inject, Service } from 'typedi';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
+import EmailService from './emailService/email';
 import { IUserInputDTO } from '../interfaces/IUser';
 import { UserStatus, EmailTemplates, UserRole } from '../interfaces/types';
-import EmailService from './emailService/email';
+import config from '../config';
 
 @Service()
 export default class AuthService {
   constructor(
     @Inject('userModel') private userModel: Models.UserModel,
+    @Inject('refreshTokenModel') private refreshTokenModel: Models.RefreshTokenModel,
     @Inject('logger') private logger,
+    @Inject('password') private password,
     private mailer: EmailService,
-  ) {
-  }
+  ) {}
 
   public async signup(userInputDTO: IUserInputDTO): Promise<{ message: string }> {
     // validate request
@@ -86,8 +89,65 @@ export default class AuthService {
     return {message: 'Registration successful, please check your email for verification instructions'};
   }
 
+  public async verifyEmail(token: string): Promise<{ message: string }> {
+
+    const user = await this.userModel.findOne({
+      'verificationToken.token': token,
+      'verificationToken.expires': { $gt: Date.now() },
+    });
+
+    if (!user) throw 'Invalid token';
+
+    user.verified = Date.now();
+    user.status = UserStatus.ACTIVE;
+    user.verificationToken = {} as any;
+    user.save();
+
+    return { message: 'Verification successful, you can now login' };
+  }
+
+  public async signin(email: string, password: string, ipAddress: string) {
+    const user = await this.userModel.findOne({ email: email });
+
+    if (!user) throw 'User not registered.';
+
+    if (user.status !== UserStatus.ACTIVE) throw 'User not verified yet';
+
+    this.logger.silly('Checking password');
+    const validPassword = await this.password.compare(user.password, password);
+    if (!validPassword) throw 'Invalid password';
+    this.logger.silly('Password is valid!');
+
+    this.logger.silly('Generating JWT');
+    const jwtToken = await AuthService.generateJwtToken(user);
+    const refreshToken = await this.generateRefreshToken(user, ipAddress);
+
+    return {
+      auth: true,
+      jwtToken,
+      refreshToken: refreshToken.token,
+    };
+  }
+
   // helpers
   private static randomTokenString() {
     return crypto.randomBytes(40).toString('hex');
+  }
+
+  private static async generateJwtToken(user: { id: string; role: string }) {
+    // create a jwt token containing the user id that expires in 15 minutes
+    return jwt.sign({ sub: user.id, id: user.id, role: user.role }, config.jwtSecret, {
+      expiresIn: '15m',
+    });
+  }
+
+  private async generateRefreshToken(user: { id: string }, ipAddress: string) {
+    // create a refresh token that expires in 7 days
+    return await this.refreshTokenModel.create({
+      user: user.id,
+      token: AuthService.randomTokenString(),
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      createdByIp: ipAddress,
+    });
   }
 }

@@ -2,6 +2,7 @@ import { Container } from 'typedi';
 import nodemailer from 'nodemailer';
 
 import LoggerInstance from './logger';
+import Password from "../services/password";
 import config from '../config';
 
 export default ({ mongoConnection, models}: { mongoConnection: any; models: { name: string; model: any }[] }) => {
@@ -26,6 +27,9 @@ export default ({ mongoConnection, models}: { mongoConnection: any; models: { na
         },
       }),
     );
+
+    // Password instance
+    Container.set('password', Password);
 
 
   } catch (err) {
