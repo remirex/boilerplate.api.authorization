@@ -3,4 +3,7 @@ export interface IRefreshToken {
   token: string;
   createdByIp: string;
   revokedByIp: string;
+  isActive: boolean;
+  revoked: number;
+  replacedByToken: string;
 }

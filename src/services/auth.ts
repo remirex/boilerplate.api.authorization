@@ -1,10 +1,10 @@
-import { Inject, Service } from 'typedi';
+import {Inject, Service} from 'typedi';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
 import EmailService from './emailService/email';
-import { IUserInputDTO } from '../interfaces/IUser';
-import { UserStatus, EmailTemplates, UserRole } from '../interfaces/types';
+import {IUserInputDTO} from '../interfaces/IUser';
+import {EmailTemplates, UserRole, UserStatus} from '../interfaces/types';
 import config from '../config';
 
 @Service()
@@ -129,25 +129,84 @@ export default class AuthService {
     };
   }
 
+  public async refreshToken(token: string, ipAddress: string) {
+    const oldRefreshToken = await this.getRefreshToken(token);
+
+    const account: any = oldRefreshToken;
+
+    const newRefreshToken = await this.generateRefreshToken(oldRefreshToken, ipAddress);
+
+    oldRefreshToken.revoked = Date.now();
+    oldRefreshToken.revokedByIp = ipAddress;
+    oldRefreshToken.replacedByToken = newRefreshToken.token;
+
+    await oldRefreshToken.save();
+
+    const jwt = await AuthService.generateJwtToken(account);
+
+    return {
+      auth: true,
+      jwt,
+      refreshToken: newRefreshToken.token,
+    }
+  }
+
+  public async revokeToken(authHeader: string, token: string, ipAddress: string): Promise<{ message: string }> {
+    const findToken = await this.getRefreshToken(token);
+
+    const isOwner = await this.tokenOwner(findToken, authHeader);
+    if (!isOwner) throw 'User is not owner for this token';
+
+    findToken.revoked = Date.now();
+    findToken.revokedByIp = ipAddress;
+    await findToken.save();
+
+    return { message: 'Token revoked' };
+  }
+
   // helpers
   private static randomTokenString() {
     return crypto.randomBytes(40).toString('hex');
   }
 
-  private static async generateJwtToken(user: { id: string; role: string }) {
+  private static async generateJwtToken(account: { id: string; role: string }) {
     // create a jwt token containing the user id that expires in 15 minutes
-    return jwt.sign({ sub: user.id, id: user.id, role: user.role }, config.jwtSecret, {
+    return jwt.sign({ sub: account.id, id: account.id, role: account.role }, config.jwtSecret, {
       expiresIn: '15m',
     });
   }
 
-  private async generateRefreshToken(user: { id: string }, ipAddress: string) {
+  private async generateRefreshToken(account: { id: string }, ipAddress: string) {
     // create a refresh token that expires in 7 days
     return await this.refreshTokenModel.create({
-      user: user.id,
+      account: account.id,
       token: AuthService.randomTokenString(),
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       createdByIp: ipAddress,
     });
+  }
+
+  private async getRefreshToken(token: string) {
+    const refreshToken = await this.refreshTokenModel.findOne({ token }).populate('User');
+    if (!refreshToken || !refreshToken.isActive) throw 'invalid token';
+
+    return refreshToken;
+  }
+
+  private async tokenOwner(refreshToken: { token: string }, authHeader: string) {
+    // decode token
+    const decoded: any = jwt.decode(authHeader);
+    console.log('decoded token:', decoded);
+
+    // find tokens & account
+    const account = await this.userModel.findById(decoded.id);
+    const refreshTokens = await this.refreshTokenModel.find({ account: account!._id });
+
+    // check if tokens match
+    const found = refreshTokens.some(item => {
+      return item.token === refreshToken.token;
+    });
+
+    return !!found;
   }
 }
