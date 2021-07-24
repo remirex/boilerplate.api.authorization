@@ -7,6 +7,7 @@
 		"responses": {},
 		"schemas": {
 			"IUserInputDTO": {
+				"description": "User Data Transfer Object",
 				"properties": {
 					"email": {
 						"type": "string"
@@ -107,6 +108,7 @@
 						}
 					}
 				},
+				"description": "Register a new user account and send a verification email.\nThe first account registered in the system is assigned the `ADMIN` role, other accounts are assigned the `GUEST` role.",
 				"tags": [
 					"User"
 				],
@@ -147,6 +149,7 @@
 						}
 					}
 				},
+				"description": "Verify a new account with a verification token received by email after registration",
 				"tags": [
 					"User"
 				],
@@ -191,6 +194,7 @@
 						}
 					}
 				},
+				"description": "Authenticate account credentials and return a JWT token and refresh token.\nAccounts must be verified before authenticating.",
 				"tags": [
 					"User"
 				],
@@ -235,6 +239,7 @@
 						}
 					}
 				},
+				"description": "Use a refresh token to generate a new JWT token and a new refresh token",
 				"tags": [
 					"User"
 				],
@@ -275,6 +280,7 @@
 						}
 					}
 				},
+				"description": "Revoke a refresh token.\nAdmin users can revoke the tokens of any account, regular users can only revoke their own tokens.",
 				"tags": [
 					"User"
 				],

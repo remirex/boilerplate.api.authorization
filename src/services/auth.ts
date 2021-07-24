@@ -20,14 +20,16 @@ export default class AuthService {
     private mailer: EmailService,
   ) {}
 
+  /**
+   * Register a new user account and send a verification email.
+   * The first account registered in the system is assigned the `ADMIN` role, other accounts are assigned the `GUEST` role.
+   * @param userInputDTO
+   */
   @Post("/signup")
   public async signup(@Body() userInputDTO: IUserInputDTO): Promise<{ message: string }> {
-    // validate request
     const user = await this.userModel.findOne({email: userInputDTO.email});
 
-    // check if account exist and if is inactive
     if (user && user.status === UserStatus.INACTIVE) {
-      // update expire date
       user.verificationToken.expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
       user.save();
 
@@ -43,9 +45,8 @@ export default class AuthService {
 
       throw 'Register but not verified, please check your email for verification instructions';
     }
-    // check if account exist and if is verified
+
     if (user) {
-      // send already registered error in email to prevent account enumeration
       await this.mailer.sendTemplateEmail(
         user.email,
         'Sign-up Verification API - Email Already Registered',
@@ -56,18 +57,15 @@ export default class AuthService {
       throw 'You are already registered';
     }
 
-    // check username
     const username = await this.userModel.findOne({ username: userInputDTO.username });
     if (username) throw `Username ${userInputDTO.username} is already exist in database.`;
 
-    // check if first registered account
     const isFirstAccount = (await this.userModel.countDocuments({})) === 0;
 
-    // create user
     this.logger.silly('Creating user db record');
     const verifyToken = AuthService.randomTokenString();
     const expireToken = new Date(Date.now() + 24 * 60 * 60 * 1000); // create verify token that expires after 24 hours
-    // create user object
+
     const userRecord = await this.userModel.create({
       ...userInputDTO,
       verificationToken: {
@@ -93,6 +91,10 @@ export default class AuthService {
     return {message: 'Registration successful, please check your email for verification instructions'};
   }
 
+  /**
+   * Verify a new account with a verification token received by email after registration
+   * @param verifyEmailInput
+   */
   @Post("/verify")
   public async verifyEmail(@Body() verifyEmailInput: IUserInputToken): Promise<{ message: string }> {
 
@@ -111,9 +113,14 @@ export default class AuthService {
     return { message: 'Verification successful, you can now login' };
   }
 
+  /**
+   * Authenticate account credentials and return a JWT token and refresh token.
+   * Accounts must be verified before authenticating.
+   * @param signInInput
+   * @param ipAddress
+   */
   @Post("/signin")
   public async signin(@Body() signInInput: IUserInputSignIn, @Query() @Hidden() ipAddress?: string) {
-    // email: string, password: string, ipAddress: string
     const user = await this.userModel.findOne({ email: signInInput.email });
 
     if (!user) throw 'User not registered.';
@@ -136,6 +143,11 @@ export default class AuthService {
     };
   }
 
+  /**
+   * Use a refresh token to generate a new JWT token and a new refresh token
+   * @param refreshTokenInput
+   * @param ipAddress
+   */
   @Post("/refresh-token")
   public async refreshToken(@Body() refreshTokenInput: IUserInputToken, @Query() @Hidden() ipAddress?: string) {
     const oldRefreshToken = await this.getRefreshToken(refreshTokenInput.token);
@@ -159,6 +171,13 @@ export default class AuthService {
     }
   }
 
+  /**
+   * Revoke a refresh token.
+   * Admin users can revoke the tokens of any account, regular users can only revoke their own tokens.
+   * @param authHeader
+   * @param revokeTokenInput
+   * @param ipAddress
+   */
   @Security("jwt")
   @Post("/revoke-token")
   public async revokeToken(
@@ -208,15 +227,11 @@ export default class AuthService {
   }
 
   private async tokenOwner(refreshToken: { token: string }, authHeader: string) {
-    // decode token
     const decoded: any = jwt.decode(authHeader);
-    console.log('decoded token:', decoded);
 
-    // find tokens & account
     const account = await this.userModel.findById(decoded.id);
     const refreshTokens = await this.refreshTokenModel.find({ account: account!._id });
 
-    // check if tokens match
     const found = refreshTokens.some(item => {
       return item.token === refreshToken.token;
     });
