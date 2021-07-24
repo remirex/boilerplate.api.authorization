@@ -1,7 +1,8 @@
 import jwt from 'express-jwt';
+
 import config from '../../config';
 
-const getTokenFromHeader = req => {
+const getTokenFromHeader = (req) => {
   if (
     (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Token') ||
     (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer')
@@ -11,11 +12,15 @@ const getTokenFromHeader = req => {
   return null;
 };
 
-const isAuth = jwt({
-  secret: config.jwtSecret,
-  algorithms: ['HS256'],
-  userProperty: 'token',
-  getToken: getTokenFromHeader,
-});
-
-export default isAuth;
+export function expressAuthentication(
+  securityName: string
+) {
+  if (securityName === "jwt") {
+    return jwt({
+      secret: config.jwtSecret,
+      algorithms: ['HS256'],
+      userProperty: 'token',
+      getToken: getTokenFromHeader,
+    });
+  }
+}

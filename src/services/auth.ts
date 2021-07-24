@@ -1,12 +1,15 @@
 import {Inject, Service} from 'typedi';
+import { Post, Route, Query, Body, Tags, Hidden, Security } from 'tsoa';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
 import EmailService from './emailService/email';
-import {IUserInputDTO} from '../interfaces/IUser';
+import {IUserInputDTO, IUserInputSignIn, IUserInputToken} from '../interfaces/IUser';
 import {EmailTemplates, UserRole, UserStatus} from '../interfaces/types';
 import config from '../config';
 
+@Tags("User")
+@Route("/auth")
 @Service()
 export default class AuthService {
   constructor(
@@ -17,7 +20,8 @@ export default class AuthService {
     private mailer: EmailService,
   ) {}
 
-  public async signup(userInputDTO: IUserInputDTO): Promise<{ message: string }> {
+  @Post("/signup")
+  public async signup(@Body() userInputDTO: IUserInputDTO): Promise<{ message: string }> {
     // validate request
     const user = await this.userModel.findOne({email: userInputDTO.email});
 
@@ -89,10 +93,11 @@ export default class AuthService {
     return {message: 'Registration successful, please check your email for verification instructions'};
   }
 
-  public async verifyEmail(token: string): Promise<{ message: string }> {
+  @Post("/verify")
+  public async verifyEmail(@Body() verifyEmailInput: IUserInputToken): Promise<{ message: string }> {
 
     const user = await this.userModel.findOne({
-      'verificationToken.token': token,
+      'verificationToken.token': verifyEmailInput.token,
       'verificationToken.expires': { $gt: Date.now() },
     });
 
@@ -106,21 +111,23 @@ export default class AuthService {
     return { message: 'Verification successful, you can now login' };
   }
 
-  public async signin(email: string, password: string, ipAddress: string) {
-    const user = await this.userModel.findOne({ email: email });
+  @Post("/signin")
+  public async signin(@Body() signInInput: IUserInputSignIn, @Query() @Hidden() ipAddress?: string) {
+    // email: string, password: string, ipAddress: string
+    const user = await this.userModel.findOne({ email: signInInput.email });
 
     if (!user) throw 'User not registered.';
 
     if (user.status !== UserStatus.ACTIVE) throw 'User not verified yet';
 
     this.logger.silly('Checking password');
-    const validPassword = await this.password.compare(user.password, password);
+    const validPassword = await this.password.compare(user.password, signInInput.password);
     if (!validPassword) throw 'Invalid password';
     this.logger.silly('Password is valid!');
 
     this.logger.silly('Generating JWT');
     const jwtToken = await AuthService.generateJwtToken(user);
-    const refreshToken = await this.generateRefreshToken(user, ipAddress);
+    const refreshToken = await this.generateRefreshToken(user, ipAddress!);
 
     return {
       auth: true,
@@ -129,15 +136,16 @@ export default class AuthService {
     };
   }
 
-  public async refreshToken(token: string, ipAddress: string) {
-    const oldRefreshToken = await this.getRefreshToken(token);
+  @Post("/refresh-token")
+  public async refreshToken(@Body() refreshTokenInput: IUserInputToken, @Query() @Hidden() ipAddress?: string) {
+    const oldRefreshToken = await this.getRefreshToken(refreshTokenInput.token);
 
     const account: any = oldRefreshToken;
 
-    const newRefreshToken = await this.generateRefreshToken(oldRefreshToken, ipAddress);
+    const newRefreshToken = await this.generateRefreshToken(oldRefreshToken, ipAddress!);
 
     oldRefreshToken.revoked = Date.now();
-    oldRefreshToken.revokedByIp = ipAddress;
+    oldRefreshToken.revokedByIp = ipAddress!;
     oldRefreshToken.replacedByToken = newRefreshToken.token;
 
     await oldRefreshToken.save();
@@ -151,14 +159,20 @@ export default class AuthService {
     }
   }
 
-  public async revokeToken(authHeader: string, token: string, ipAddress: string): Promise<{ message: string }> {
-    const findToken = await this.getRefreshToken(token);
+  @Security("jwt")
+  @Post("/revoke-token")
+  public async revokeToken(
+    @Query() @Hidden() authHeader = null,
+    @Body() revokeTokenInput: IUserInputToken,
+    @Query() @Hidden() ipAddress?: string
+  ): Promise<{ message: string }> {
+    const findToken = await this.getRefreshToken(revokeTokenInput.token);
 
-    const isOwner = await this.tokenOwner(findToken, authHeader);
+    const isOwner = await this.tokenOwner(findToken, authHeader!);
     if (!isOwner) throw 'User is not owner for this token';
 
     findToken.revoked = Date.now();
-    findToken.revokedByIp = ipAddress;
+    findToken.revokedByIp = ipAddress!;
     await findToken.save();
 
     return { message: 'Token revoked' };

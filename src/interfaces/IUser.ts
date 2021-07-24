@@ -18,5 +18,15 @@ export interface IUserInputDTO {
   name: string;
   username: string;
   password: string;
+  repeatPassword: string;
   acceptTerms: boolean;
+}
+
+export interface IUserInputSignIn {
+  email: string;
+  password: string;
+}
+
+export interface IUserInputToken {
+  token: string;
 }

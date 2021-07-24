@@ -1,9 +1,9 @@
 import joiValidation from './validation';
-import auth from './isAuth';
 import allow from './isAllow';
+import {expressAuthentication} from "./isAuth";
 
 export default {
   joiValidation,
-  auth,
-  allow
+  allow,
+  expressAuthentication,
 }

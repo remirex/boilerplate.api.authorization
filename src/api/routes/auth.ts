@@ -4,7 +4,7 @@ import {Logger} from 'winston';
 import Joi from 'joi';
 
 import AuthService from '../../services/auth';
-import {IUserInputDTO} from '../../interfaces/IUser';
+import {IUserInputDTO,IUserInputSignIn,IUserInputToken} from '../../interfaces/IUser';
 import {UserRole} from '../../interfaces/types';
 import middleware from '../middlewares';
 
@@ -31,7 +31,7 @@ export default (app: Router) => {
     logger.debug('Calling Verify Email endpoint with body: %o', req.body);
     try {
       const authServiceInstance = Container.get(AuthService);
-      const response = await authServiceInstance.verifyEmail(req.body.token);
+      const response = await authServiceInstance.verifyEmail(req.body as IUserInputToken);
       return res.status(200).json(response);
     } catch (error) {
       logger.error('🔥 error: %o', error);
@@ -44,7 +44,7 @@ export default (app: Router) => {
     logger.debug('Calling SignIn endpoint with body: %o', req.body);
     try {
       const authServiceInstance = Container.get(AuthService);
-      const response = await authServiceInstance.signin(req.body.email, req.body.password, req.ip);
+      const response = await authServiceInstance.signin(req.body as IUserInputSignIn, req.ip);
       return res.status(200).json(response);
     } catch (error) {
       logger.error('🔥 error: %o', error);
@@ -57,7 +57,7 @@ export default (app: Router) => {
     logger.debug('Calling Refresh Token endpoint with body: %o', req.body);
     try {
       const authServiceInstance = Container.get(AuthService);
-      const response = await authServiceInstance.refreshToken(req.body.token, req.ip);
+      const response = await authServiceInstance.refreshToken(req.body as IUserInputToken, req.ip);
       return res.status(200).json(response);
     }catch (error) {
       logger.error('🔥 error: %o', error);
@@ -67,7 +67,7 @@ export default (app: Router) => {
 
   route.post('/revoke-token',
     revokeTokenSchema,
-    middleware.auth,
+    middleware.expressAuthentication('jwt'),
     middleware.allow([UserRole.ADMIN, UserRole.GUEST]),
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get('logger');
@@ -81,7 +81,7 @@ export default (app: Router) => {
           authHeader = req.headers.authorization.split(' ')[1];
         }
         const authServiceInstance = Container.get(AuthService);
-        const response = await authServiceInstance.revokeToken(authHeader, req.body.token, req.ip);
+        const response = await authServiceInstance.revokeToken(authHeader, req.body as IUserInputToken, req.ip);
         return res.status(200).json(response);
       } catch (error) {
         logger.error('🔥 error: %o', error);

@@ -1,0 +1,17 @@
+{
+  "entryFile": "src/app.ts",
+  "noImplicitAdditionalProperties": "throw-on-extras",
+  "controllerPathGlobs": ["src/services/auth.ts"],
+  "spec": {
+    "outputDirectory": "public",
+    "basePath": "/api/v1",
+    "specVersion": 3,
+    "securityDefinitions": {
+      "jwt": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "ignore": ["**/node_modules/**"]
+}

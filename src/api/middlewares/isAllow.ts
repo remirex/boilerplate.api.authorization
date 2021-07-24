@@ -17,7 +17,6 @@ const isAllowed = (roles: string[]) => {
     const token = getTokenFromHeader(req);
     try {
       const decoded = jwt.verify(token, config.jwtSecret);
-      console.log(decoded);
       if (!roles.includes(decoded['role'])) {
         return res.status(405).json({ message: 'Not Allowed.' });
       }

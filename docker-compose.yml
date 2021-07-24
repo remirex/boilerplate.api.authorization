@@ -34,8 +34,8 @@ services:
     restart: unless-stopped
     ports:
       - "27017:27017"
-    volumes:
-      - ./database/seed.js:/docker-entrypoint-initdb.d/seed.js
+#    volumes:
+#      - ./database/seed.js:/docker-entrypoint-initdb.d/seed.js
     healthcheck:
       test: "[ `echo 'db.runCommand(\"ping\").ok' | mongo localhost/example-database --quiet` ] && echo 0 || echo 1"
       interval: 5s
