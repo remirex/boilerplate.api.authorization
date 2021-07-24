@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-import { IRefreshToken } from '../interfaces/IRefreshToken';
+import { IRefreshToken } from '../interfaces/IUser';
 
 const RefreshToken = new mongoose.Schema({
   account: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

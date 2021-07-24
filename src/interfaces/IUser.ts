@@ -13,6 +13,16 @@ export interface IUser {
   role: string;
 }
 
+export interface IRefreshToken {
+  id: string;
+  token: string;
+  createdByIp: string;
+  revokedByIp: string;
+  isActive: boolean;
+  revoked: number;
+  replacedByToken: string;
+}
+
 export interface IUserInputDTO {
   email: string;
   name: string;

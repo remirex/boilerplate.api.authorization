@@ -9,7 +9,8 @@
     "securityDefinitions": {
       "jwt": {
         "type": "http",
-        "scheme": "bearer"
+        "scheme": "bearer",
+        "description": "JWT Authorization header using the Bearer scheme.\n\nEnter your token in the text input below.\n\n Example: \"12345abcdef\"\n\n Name: Authorization\n\nIn: header"
       }
     }
   },

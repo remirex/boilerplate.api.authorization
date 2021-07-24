@@ -1,7 +1,6 @@
 import { Document, Model } from 'mongoose';
 
-import { IUser } from '../../interfaces/IUser';
-import { IRefreshToken } from '../../interfaces/IRefreshToken';
+import { IUser, IRefreshToken } from '../../interfaces/IUser';
 
 declare global {
   namespace Models {

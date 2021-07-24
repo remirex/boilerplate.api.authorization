@@ -1,7 +1,7 @@
 {
   "name": "boilerplate-api-authorization",
   "version": "1.0.0",
-  "description": "",
+  "description": "REST API to support Authorization micro service",
   "main": "index.js",
   "scripts": {
     "start": "NODE_PATH=./build node build/app.js",
@@ -14,7 +14,7 @@
     "url": "git+https://github.com/remirex/boilerplate.api.authorization.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Mirko Josimovic",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/remirex/boilerplate.api.authorization/issues"

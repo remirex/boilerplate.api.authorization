@@ -7,7 +7,6 @@
 		"responses": {},
 		"schemas": {
 			"IUserInputDTO": {
-				"description": "User Data Transfer Object",
 				"properties": {
 					"email": {
 						"type": "string"
@@ -71,17 +70,21 @@
 		"securitySchemes": {
 			"jwt": {
 				"type": "http",
-				"scheme": "bearer"
+				"scheme": "bearer",
+				"description": "JWT Authorization header using the Bearer scheme.\n\nEnter your token in the text input below.\n\n Example: \"12345abcdef\"\n\n Name: Authorization\n\nIn: header"
 			}
 		}
 	},
 	"info": {
 		"title": "boilerplate-api-authorization",
 		"version": "1.0.0",
+		"description": "REST API to support Authorization micro service",
 		"license": {
 			"name": "ISC"
 		},
-		"contact": {}
+		"contact": {
+			"name": "Mirko Josimovic"
+		}
 	},
 	"openapi": "3.0.0",
 	"paths": {
