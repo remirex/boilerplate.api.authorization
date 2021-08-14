@@ -4,6 +4,7 @@ import config from '../../config';
 import { EmailTemplates } from '../../interfaces/types';
 import { verifyUser } from './templates/verifyUser';
 import { alreadyRegistered } from './templates/alreadyRegistered';
+import { passwordResetEmail } from "./templates/passwordReset";
 
 @Service()
 export default class EmailService {
@@ -34,6 +35,9 @@ export default class EmailService {
         break;
       case EmailTemplates.ALREADY_REGISTERED:
         content = alreadyRegistered(data);
+        break;
+      case EmailTemplates.RESET_PASSWORD:
+        content = passwordResetEmail(data);
         break;
       default:
     }

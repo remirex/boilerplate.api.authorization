@@ -7,6 +7,7 @@ import {IUserInputDTO,IUserInputSignIn,IUserInputToken} from '../../interfaces/I
 import {UserRole} from '../../interfaces/types';
 import middleware from '../middlewares';
 import request from "../requests";
+import {IUserInputEmail} from "../../interfaces/IUser";
 
 const route = Router();
 
@@ -82,6 +83,21 @@ export default (app: Router) => {
         }
         const authServiceInstance = Container.get(AuthService);
         const response = await authServiceInstance.revokeToken(authHeader, req.body as IUserInputToken, req.ip);
+        return res.status(200).json(response);
+      } catch (error) {
+        logger.error('🔥 error: %o', error);
+        return next(error);
+      }
+    });
+
+  route.post('/forgot-password',
+    request.forgotPasswordSchema,
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get('logger');
+      logger.debug('Calling Forgot Password endpoint with body: %o', req.body);
+      try {
+        const authServiceInstance = Container.get(AuthService);
+        const response = await authServiceInstance.forgotPassword(req.body as IUserInputEmail);
         return res.status(200).json(response);
       } catch (error) {
         logger.error('🔥 error: %o', error);

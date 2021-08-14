@@ -7,6 +7,7 @@ import EmailService from './emailService/email';
 import {IUserInputDTO, IUserInputSignIn, IUserInputToken} from '../interfaces/IUser';
 import {EmailTemplates, UserRole, UserStatus} from '../interfaces/types';
 import config from '../config';
+import {IUserInputEmail} from "../interfaces/IUser";
 
 @Tags("User")
 @Route("/auth")
@@ -195,6 +196,35 @@ export default class AuthService {
     await findToken.save();
 
     return { message: 'Token revoked' };
+  }
+
+  @Post("/forgot-password")
+  public async forgotPassword(
+    @Body() forgotPasswordInput: IUserInputEmail
+  ): Promise<{ message: string }> {
+    const user = await this.userModel.findOne({ email: forgotPasswordInput.email });
+
+    // always return ok response to prevent email enumeration
+    if (!user) throw 'User not found';
+
+    user.resetToken = {
+      token: AuthService.randomTokenString(),
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    };
+
+    await user.save();
+
+    await this.mailer.sendTemplateEmail(
+      forgotPasswordInput.email,
+      'Sign-up Verification API - Reset Password',
+      EmailTemplates.RESET_PASSWORD,
+      {
+        username: user.username,
+        token: user.resetToken.token,
+      }
+    )
+
+    return { message: 'Please check your email for password reset instructions' };
   }
 
   // helpers

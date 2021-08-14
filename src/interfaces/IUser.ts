@@ -9,6 +9,10 @@ export interface IUser {
     token: string,
     expires: Date
   };
+  resetToken: {
+    token: string,
+    expires: Date
+  }
   verified: number;
   role: string;
 }
@@ -39,4 +43,8 @@ export interface IUserInputSignIn {
 
 export interface IUserInputToken {
   token: string;
+}
+
+export interface IUserInputEmail {
+  email: string;
 }
