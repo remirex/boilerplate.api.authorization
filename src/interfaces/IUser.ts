@@ -48,3 +48,8 @@ export interface IUserInputToken {
 export interface IUserInputEmail {
   email: string;
 }
+
+export interface ResetPasswordDto {
+  token: string;
+  password: string;
+}

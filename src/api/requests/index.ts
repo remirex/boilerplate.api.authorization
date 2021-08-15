@@ -4,6 +4,7 @@ import {signInSchema} from "./signIn";
 import {refreshTokenSchema} from "./refreshToken";
 import {revokeTokenSchema} from "./revokeToken";
 import {forgotPasswordSchema} from './forgotPassword';
+import {resetPasswordSchema} from "./resetPassword";
 
 export default {
   signUpSchema,
@@ -12,4 +13,5 @@ export default {
   refreshTokenSchema,
   revokeTokenSchema,
   forgotPasswordSchema,
+  resetPasswordSchema,
 }

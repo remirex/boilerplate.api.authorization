@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
 import EmailService from './emailService/email';
-import {IUserInputDTO, IUserInputSignIn, IUserInputToken} from '../interfaces/IUser';
+import {IUserInputDTO, IUserInputSignIn, IUserInputToken,ResetPasswordDto} from '../interfaces/IUser';
 import {EmailTemplates, UserRole, UserStatus} from '../interfaces/types';
 import config from '../config';
 import {IUserInputEmail} from "../interfaces/IUser";
@@ -24,11 +24,11 @@ export default class AuthService {
   /**
    * Register a new user account and send a verification email.
    * The first account registered in the system is assigned the `ADMIN` role, other accounts are assigned the `GUEST` role.
-   * @param userInputDTO
+   * @param signUpUserDto
    */
   @Post("/signup")
-  public async signup(@Body() userInputDTO: IUserInputDTO): Promise<{ message: string }> {
-    const user = await this.userModel.findOne({email: userInputDTO.email});
+  public async signup(@Body() signUpUserDto: IUserInputDTO): Promise<{ message: string }> {
+    const user = await this.userModel.findOne({email: signUpUserDto.email});
 
     if (user && user.status === UserStatus.INACTIVE) {
       user.verificationToken.expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -58,8 +58,8 @@ export default class AuthService {
       throw 'You are already registered';
     }
 
-    const username = await this.userModel.findOne({ username: userInputDTO.username });
-    if (username) throw `Username ${userInputDTO.username} is already exist in database.`;
+    const username = await this.userModel.findOne({ username: signUpUserDto.username });
+    if (username) throw `Username ${signUpUserDto.username} is already exist in database.`;
 
     const isFirstAccount = (await this.userModel.countDocuments({})) === 0;
 
@@ -68,7 +68,7 @@ export default class AuthService {
     const expireToken = new Date(Date.now() + 24 * 60 * 60 * 1000); // create verify token that expires after 24 hours
 
     const userRecord = await this.userModel.create({
-      ...userInputDTO,
+      ...signUpUserDto,
       verificationToken: {
         token: verifyToken,
         expires: expireToken,
@@ -80,11 +80,11 @@ export default class AuthService {
 
     this.logger.silly('Sending verify email');
     await this.mailer.sendTemplateEmail(
-      userInputDTO.email,
+      signUpUserDto.email,
       'Sign-up Verification API - Verify Email',
       EmailTemplates.VERIFY_EMAIL,
       {
-        name: userInputDTO.name,
+        name: signUpUserDto.name,
         token: verifyToken,
       },
     );
@@ -198,6 +198,10 @@ export default class AuthService {
     return { message: 'Token revoked' };
   }
 
+  /**
+   * Send a token to the email which will allow you to reset the password of the account
+   * @param forgotPasswordInput
+   */
   @Post("/forgot-password")
   public async forgotPassword(
     @Body() forgotPasswordInput: IUserInputEmail
@@ -225,6 +229,37 @@ export default class AuthService {
     )
 
     return { message: 'Please check your email for password reset instructions' };
+  }
+
+  /**
+   * Password reset token received in the email from the forgot password step
+   * @param resetPasswordDto
+   */
+  @Post('/reset-password')
+  public async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto
+  ): Promise<{ message: string}> {
+    const user = await this.userModel.findOne({
+      'resetToken.token': resetPasswordDto.token,
+      'resetToken.expires': { $gt: Date.now() },
+    });
+
+    if (!user) throw 'Invalid token';
+
+    const hash = await this.password.toHash(resetPasswordDto.password);
+
+    await this.userModel.updateOne(
+      { 'resetToken.token': resetPasswordDto.token },
+      {
+        $set: {
+          password: hash,
+          passwordReset: Date.now(),
+          resetToken: undefined
+        },
+      },
+    );
+
+    return { message: 'Password reset successful, you can now login' };
   }
 
   // helpers

@@ -104,4 +104,17 @@ export default (app: Router) => {
         return next(error);
       }
     });
+
+  route.post('reset-password',
+    request.resetPasswordSchema,
+    async (req: Request, res: Response, next: NextFunction) => {
+      const logger: Logger = Container.get('logger');
+      logger.debug('Calling Reset Password endpoint with body: %o', req.body);
+      try {
+
+      } catch (error) {
+        logger.error('🔥 error: %o', error);
+        return next(error);
+      }
+    });
 }
