@@ -8,6 +8,7 @@ export function resetPasswordSchema(req: Request, res: Response, next: NextFunct
   const schema = Joi.object({
     token: Joi.string().required(),
     password: Joi.string().required().min(8).max(20).pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')),
+    repeatPassword: Joi.ref('password'),
   });
   middleware.joiValidation(req, res, next, schema);
 }

@@ -15,6 +15,7 @@ export interface IUser {
   }
   verified: number;
   role: string;
+  twoFactorAuthenticationCode: string;
 }
 
 export interface IRefreshToken {
@@ -52,4 +53,5 @@ export interface IUserInputEmail {
 export interface ResetPasswordDto {
   token: string;
   password: string;
+  repeatPassword: string;
 }

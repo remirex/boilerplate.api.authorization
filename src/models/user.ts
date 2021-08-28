@@ -40,6 +40,10 @@ const User = new mongoose.Schema({
     default: UserStatus.INACTIVE,
     enum: [UserStatus.INACTIVE, UserStatus.BANNED, UserStatus.ACTIVE]
   },
+  twoFactorAuthenticationCode: {
+    type: String,
+    default: null,
+  },
   verificationToken: {
     token: String,
     expires: Date

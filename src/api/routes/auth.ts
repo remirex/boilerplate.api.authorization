@@ -13,6 +13,8 @@ const route = Router();
 
 export default (app: Router) => {
   app.use('/auth', route);
+  const logger: Logger = Container.get('logger');
+  const authServiceInstance = Container.get(AuthService);
 
   route.post('/signup', request.signUpSchema, async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get('logger');
@@ -105,13 +107,42 @@ export default (app: Router) => {
       }
     });
 
-  route.post('reset-password',
+  route.post('/reset-password',
     request.resetPasswordSchema,
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get('logger');
       logger.debug('Calling Reset Password endpoint with body: %o', req.body);
       try {
+        const authServiceInstance = Container.get(AuthService);
+        const response = await authServiceInstance.resetPassword(req.body);
+        return res.status(200).json(response);
+      } catch (error) {
+        logger.error('🔥 error: %o', error);
+        return next(error);
+      }
+    });
 
+  route.post('/2fa/generate',
+    middleware.expressAuthentication('jwt'),
+    middleware.attachCurrentUser,
+    async (req: Request, res: Response, next: NextFunction) => {
+      logger.debug('Calling generate Two Factor Authentication Code');
+      const userId = req.currentUser.id;
+      logger.info(userId);
+      try {
+        return authServiceInstance.generateTwoFactorAuthenticationCode(userId, res);
+      } catch (error) {
+        logger.error('🔥 error: %o', error);
+        return next(error);
+      }
+    });
+
+  route.get('/me',
+    middleware.expressAuthentication('jwt'),
+    middleware.attachCurrentUser,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        return res.json({ user: req.currentUser }).status(200);
       } catch (error) {
         logger.error('🔥 error: %o', error);
         return next(error);

@@ -2,6 +2,8 @@ import {Inject, Service} from 'typedi';
 import { Post, Route, Query, Body, Tags, Hidden, Security } from 'tsoa';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import * as speakeasy from 'speakeasy';
+import * as QRCode from 'qrcode';
 
 import EmailService from './emailService/email';
 import {IUserInputDTO, IUserInputSignIn, IUserInputToken,ResetPasswordDto} from '../interfaces/IUser';
@@ -260,6 +262,23 @@ export default class AuthService {
     );
 
     return { message: 'Password reset successful, you can now login' };
+  }
+
+  /**
+   * Generate two factor authentication code
+   * @param userId
+   * @param response
+   */
+  public async generateTwoFactorAuthenticationCode(userId: string, response) {
+    const secretCode = speakeasy.generateSecret({
+      name: config.twoFactorAppName,
+    });
+
+    this.userModel.findByIdAndUpdate(userId, {
+      twoFactorAuthenticationCode: secretCode.base32,
+    });
+
+    return QRCode.toFileStream(response, secretCode.otpauth_url!);
   }
 
   // helpers

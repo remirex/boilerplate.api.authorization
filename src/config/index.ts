@@ -57,4 +57,9 @@ export default {
    */
   jwtSecret: String(process.env.JWT_SECRET),
   jwtAlgorithm: String(process.env.JWT_ALGO),
+
+  /**
+   * Two-Factor Authentication
+   */
+  twoFactorAppName: process.env.TWO_FACTOR_AUTHENTICATION_APP_NAME,
 }
