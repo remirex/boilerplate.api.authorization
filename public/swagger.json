@@ -85,11 +85,15 @@
 					},
 					"password": {
 						"type": "string"
+					},
+					"repeatPassword": {
+						"type": "string"
 					}
 				},
 				"required": [
 					"token",
-					"password"
+					"password",
+					"repeatPassword"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -413,6 +417,59 @@
 						}
 					}
 				}
+			}
+		},
+		"/auth/me": {
+			"get": {
+				"operationId": "CurrentUser",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {},
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"description": "Current user details",
+				"tags": [
+					"User"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/auth/2fa/generate": {
+			"post": {
+				"operationId": "GenerateTwoFactorAuthenticationCode",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"description": "Generate two factor authentication code",
+				"tags": [
+					"User"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
 			}
 		}
 	},

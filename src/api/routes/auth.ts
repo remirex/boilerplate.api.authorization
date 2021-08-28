@@ -142,7 +142,8 @@ export default (app: Router) => {
     middleware.attachCurrentUser,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        return res.json({ user: req.currentUser }).status(200);
+        const response = await authServiceInstance.currentUser(req.currentUser)
+        return res.status(200).json(response);
       } catch (error) {
         logger.error('🔥 error: %o', error);
         return next(error);

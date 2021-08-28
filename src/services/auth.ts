@@ -1,5 +1,5 @@
 import {Inject, Service} from 'typedi';
-import { Post, Route, Query, Body, Tags, Hidden, Security } from 'tsoa';
+import { Post, Get, Route, Query, Body, Tags, Hidden, Security, Request } from 'tsoa';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import * as speakeasy from 'speakeasy';
@@ -265,11 +265,23 @@ export default class AuthService {
   }
 
   /**
+   * Current user details
+   * @param user
+   */
+  @Security("jwt")
+  @Get('/me')
+  public async currentUser(@Request() user): Promise<{}> {
+    return user;
+  }
+
+  /**
    * Generate two factor authentication code
    * @param userId
    * @param response
    */
-  public async generateTwoFactorAuthenticationCode(userId: string, response) {
+  @Security("jwt")
+  @Post('/2fa/generate')
+  public async generateTwoFactorAuthenticationCode(@Request() userId: string, @Request() response) {
     const secretCode = speakeasy.generateSecret({
       name: config.twoFactorAppName,
     });
