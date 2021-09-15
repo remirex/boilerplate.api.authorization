@@ -6,10 +6,9 @@ import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 
 import EmailService from './emailService/email';
-import {IUserInputDTO, IUserInputSignIn, IUserInputToken,ResetPasswordDto} from '../interfaces/IUser';
+import {ResetPasswordDto, CreateUserDto, LogInDto, ForgotPasswordDto, TokenDto} from '../interfaces/IUser';
 import {EmailTemplates, UserRole, UserStatus} from '../interfaces/types';
 import config from '../config';
-import {IUserInputEmail} from "../interfaces/IUser";
 
 @Tags("User")
 @Route("/auth")
@@ -26,11 +25,11 @@ export default class AuthService {
   /**
    * Register a new user account and send a verification email.
    * The first account registered in the system is assigned the `ADMIN` role, other accounts are assigned the `GUEST` role.
-   * @param signUpUserDto
+   * @param userData
    */
   @Post("/signup")
-  public async signup(@Body() signUpUserDto: IUserInputDTO): Promise<{ message: string }> {
-    const user = await this.userModel.findOne({email: signUpUserDto.email});
+  public async signup(@Body() userData: CreateUserDto): Promise<{ message: string }> {
+    const user = await this.userModel.findOne({email: userData.email});
 
     if (user && user.status === UserStatus.INACTIVE) {
       user.verificationToken.expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -60,8 +59,8 @@ export default class AuthService {
       throw 'You are already registered';
     }
 
-    const username = await this.userModel.findOne({ username: signUpUserDto.username });
-    if (username) throw `Username ${signUpUserDto.username} is already exist in database.`;
+    const username = await this.userModel.findOne({ username: userData.username });
+    if (username) throw `Username ${userData.username} is already exist in database.`;
 
     const isFirstAccount = (await this.userModel.countDocuments({})) === 0;
 
@@ -70,7 +69,7 @@ export default class AuthService {
     const expireToken = new Date(Date.now() + 24 * 60 * 60 * 1000); // create verify token that expires after 24 hours
 
     const userRecord = await this.userModel.create({
-      ...signUpUserDto,
+      ...userData,
       verificationToken: {
         token: verifyToken,
         expires: expireToken,
@@ -82,11 +81,11 @@ export default class AuthService {
 
     this.logger.silly('Sending verify email');
     await this.mailer.sendTemplateEmail(
-      signUpUserDto.email,
+      userData.email,
       'Sign-up Verification API - Verify Email',
       EmailTemplates.VERIFY_EMAIL,
       {
-        name: signUpUserDto.name,
+        name: userData.name,
         token: verifyToken,
       },
     );
@@ -96,13 +95,13 @@ export default class AuthService {
 
   /**
    * Verify a new account with a verification token received by email after registration
-   * @param verifyEmailInput
+   * @param verifyEmailData
    */
   @Post("/verify")
-  public async verifyEmail(@Body() verifyEmailInput: IUserInputToken): Promise<{ message: string }> {
+  public async verifyEmail(@Body() verifyEmailData: TokenDto): Promise<{ message: string }> {
 
     const user = await this.userModel.findOne({
-      'verificationToken.token': verifyEmailInput.token,
+      'verificationToken.token': verifyEmailData.token,
       'verificationToken.expires': { $gt: Date.now() },
     });
 
@@ -119,19 +118,19 @@ export default class AuthService {
   /**
    * Authenticate account credentials and return a JWT token and refresh token.
    * Accounts must be verified before authenticating.
-   * @param signInInput
+   * @param logInData
    * @param ipAddress
    */
   @Post("/signin")
-  public async signin(@Body() signInInput: IUserInputSignIn, @Query() @Hidden() ipAddress?: string) {
-    const user = await this.userModel.findOne({ email: signInInput.email });
+  public async signin(@Body() logInData: LogInDto, @Query() @Hidden() ipAddress?: string) {
+    const user = await this.userModel.findOne({ email: logInData.email });
 
     if (!user) throw 'User not registered.';
 
     if (user.status !== UserStatus.ACTIVE) throw 'User not verified yet';
 
     this.logger.silly('Checking password');
-    const validPassword = await this.password.compare(user.password, signInInput.password);
+    const validPassword = await this.password.compare(user.password, logInData.password);
     if (!validPassword) throw 'Invalid password';
     this.logger.silly('Password is valid!');
 
@@ -148,12 +147,12 @@ export default class AuthService {
 
   /**
    * Use a refresh token to generate a new JWT token and a new refresh token
-   * @param refreshTokenInput
+   * @param refrashTokenData
    * @param ipAddress
    */
   @Post("/refresh-token")
-  public async refreshToken(@Body() refreshTokenInput: IUserInputToken, @Query() @Hidden() ipAddress?: string) {
-    const oldRefreshToken = await this.getRefreshToken(refreshTokenInput.token);
+  public async refreshToken(@Body() refrashTokenData: TokenDto, @Query() @Hidden() ipAddress?: string) {
+    const oldRefreshToken = await this.getRefreshToken(refrashTokenData.token);
 
     const account: any = oldRefreshToken;
 
@@ -178,17 +177,17 @@ export default class AuthService {
    * Revoke a refresh token.
    * Admin users can revoke the tokens of any account, regular users can only revoke their own tokens.
    * @param authHeader
-   * @param revokeTokenInput
+   * @param revokeTokenData
    * @param ipAddress
    */
   @Security("jwt")
   @Post("/revoke-token")
   public async revokeToken(
     @Query() @Hidden() authHeader = null,
-    @Body() revokeTokenInput: IUserInputToken,
+    @Body() revokeTokenData: TokenDto,
     @Query() @Hidden() ipAddress?: string
   ): Promise<{ message: string }> {
-    const findToken = await this.getRefreshToken(revokeTokenInput.token);
+    const findToken = await this.getRefreshToken(revokeTokenData.token);
 
     const isOwner = await this.tokenOwner(findToken, authHeader!);
     if (!isOwner) throw 'User is not owner for this token';
@@ -202,13 +201,13 @@ export default class AuthService {
 
   /**
    * Send a token to the email which will allow you to reset the password of the account
-   * @param forgotPasswordInput
+   * @param forgotPasswordData
    */
   @Post("/forgot-password")
   public async forgotPassword(
-    @Body() forgotPasswordInput: IUserInputEmail
+    @Body() forgotPasswordData: ForgotPasswordDto
   ): Promise<{ message: string }> {
-    const user = await this.userModel.findOne({ email: forgotPasswordInput.email });
+    const user = await this.userModel.findOne({ email: forgotPasswordData.email });
 
     // always return ok response to prevent email enumeration
     if (!user) throw 'User not found';
@@ -221,7 +220,7 @@ export default class AuthService {
     await user.save();
 
     await this.mailer.sendTemplateEmail(
-      forgotPasswordInput.email,
+      forgotPasswordData.email,
       'Sign-up Verification API - Reset Password',
       EmailTemplates.RESET_PASSWORD,
       {
@@ -235,23 +234,23 @@ export default class AuthService {
 
   /**
    * Password reset token received in the email from the forgot password step
-   * @param resetPasswordDto
+   * @param resetPasswordData
    */
   @Post('/reset-password')
   public async resetPassword(
-    @Body() resetPasswordDto: ResetPasswordDto
+    @Body() resetPasswordData: ResetPasswordDto
   ): Promise<{ message: string}> {
     const user = await this.userModel.findOne({
-      'resetToken.token': resetPasswordDto.token,
+      'resetToken.token': resetPasswordData.token,
       'resetToken.expires': { $gt: Date.now() },
     });
 
     if (!user) throw 'Invalid token';
 
-    const hash = await this.password.toHash(resetPasswordDto.password);
+    const hash = await this.password.toHash(resetPasswordData.password);
 
     await this.userModel.updateOne(
-      { 'resetToken.token': resetPasswordDto.token },
+      { 'resetToken.token': resetPasswordData.token },
       {
         $set: {
           password: hash,

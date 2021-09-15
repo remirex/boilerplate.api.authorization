@@ -28,7 +28,7 @@ export interface IRefreshToken {
   replacedByToken: string;
 }
 
-export interface IUserInputDTO {
+export interface CreateUserDto {
   email: string;
   name: string;
   username: string;
@@ -36,14 +36,17 @@ export interface IUserInputDTO {
   repeatPassword: string;
   acceptTerms: boolean;
 }
-
-export interface IUserInputSignIn {
+export interface LogInDto {
   email: string;
   password: string;
 }
 
-export interface IUserInputToken {
+export interface TokenDto {
   token: string;
+}
+
+export interface ForgotPasswordDto {
+  email: string;
 }
 
 export interface IUserInputEmail {

@@ -3,7 +3,7 @@ import {Container} from 'typedi';
 import {Logger} from 'winston';
 
 import AuthService from '../../services/auth';
-import {IUserInputDTO,IUserInputSignIn,IUserInputToken} from '../../interfaces/IUser';
+import {IUserInputDTO,LogInDto,IUserInputToken} from '../../interfaces/IUser';
 import {UserRole} from '../../interfaces/types';
 import middleware from '../middlewares';
 import request from "../requests";
@@ -47,7 +47,7 @@ export default (app: Router) => {
     logger.debug('Calling SignIn endpoint with body: %o', req.body);
     try {
       const authServiceInstance = Container.get(AuthService);
-      const response = await authServiceInstance.signin(req.body as IUserInputSignIn, req.ip);
+      const response = await authServiceInstance.signin(req.body as LogInDto, req.ip);
       return res.status(200).json(response);
     } catch (error) {
       logger.error('🔥 error: %o', error);
