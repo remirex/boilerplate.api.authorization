@@ -68,6 +68,7 @@ const User = new mongoose.Schema({
       delete ret.password;
       delete ret.verificationToken;
       delete ret.resetToken;
+      delete ret.twoFactorAuthenticationCode;
       // transform
       ret.id = ret._id;
       delete ret._id;
