@@ -16,10 +16,12 @@ export interface IUser {
   verified: number;
   role: string;
   twoFactorAuthenticationCode: string;
+  isTwoFactorAuthenticationEnabled: boolean;
 }
 
 export interface IRefreshToken {
   id: string;
+  user: object;
   token: string;
   createdByIp: string;
   revokedByIp: string;
@@ -49,12 +51,18 @@ export interface ForgotPasswordDto {
   email: string;
 }
 
-export interface IUserInputEmail {
-  email: string;
-}
-
 export interface ResetPasswordDto {
   token: string;
   password: string;
   repeatPassword: string;
+}
+
+export interface TwoFactorAuthenticationDto {
+  code: string;
+}
+
+export interface DataStoredInTokenDto {
+  id: string;
+  role: string;
+  isSecondFactorAuthenticated: boolean;
 }

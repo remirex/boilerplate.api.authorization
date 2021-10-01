@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { IRefreshToken } from '../interfaces/IUser';
 
 const RefreshToken = new mongoose.Schema({
-  account: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   token: String,
   expires: Date,
   created: { type: Date, default: Date.now },

@@ -1,11 +1,9 @@
 import joiValidation from './validation';
-import allow from './isAllow';
-import {expressAuthentication} from "./isAuth";
-import attachCurrentUser from "./attachCurrentUser";
+import allowMiddleware from './allow';
+import authMiddleware from './auth';
 
 export default {
   joiValidation,
-  allow,
-  expressAuthentication,
-  attachCurrentUser,
+  allowMiddleware,
+  authMiddleware,
 }

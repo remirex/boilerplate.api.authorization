@@ -5,6 +5,7 @@ import {refreshTokenSchema} from "./refreshToken";
 import {revokeTokenSchema} from "./revokeToken";
 import {forgotPasswordSchema} from './forgotPassword';
 import {resetPasswordSchema} from "./resetPassword";
+import {twoFactorAuthSchema} from "./twoFactorAuth";
 
 export default {
   signUpSchema,
@@ -14,4 +15,5 @@ export default {
   revokeTokenSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  twoFactorAuthSchema,
 }
