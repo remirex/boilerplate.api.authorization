@@ -3,11 +3,10 @@ import {Container} from 'typedi';
 import {Logger} from 'winston';
 
 import AuthService from '../../services/auth';
-import {IUserInputDTO,LogInDto,IUserInputToken} from '../../interfaces/IUser';
+import {CreateUserDto, LogInDto, TokenDto, TwoFactorAuthenticationDto, ForgotPasswordDto, ResetPasswordDto} from '../../interfaces/IUser';
 import {UserRole} from '../../interfaces/types';
 import middleware from '../middlewares';
 import request from "../requests";
-import {IUserInputEmail} from "../../interfaces/IUser";
 
 const route = Router();
 
@@ -21,7 +20,7 @@ export default (app: Router) => {
     logger.debug('Calling SignUp endpoint with body: %o', req.body);
     try {
       const authServiceInstance = Container.get(AuthService);
-      const response = await authServiceInstance.signup(req.body as IUserInputDTO);
+      const response = await authServiceInstance.signup(req.body as CreateUserDto);
       return res.status(201).json(response);
     } catch (error) {
       logger.error('🔥 error: %o', error);
@@ -34,7 +33,7 @@ export default (app: Router) => {
     logger.debug('Calling Verify Email endpoint with body: %o', req.body);
     try {
       const authServiceInstance = Container.get(AuthService);
-      const response = await authServiceInstance.verifyEmail(req.body as IUserInputToken);
+      const response = await authServiceInstance.verifyEmail(req.body as TokenDto);
       return res.status(200).json(response);
     } catch (error) {
       logger.error('🔥 error: %o', error);
@@ -60,9 +59,9 @@ export default (app: Router) => {
     logger.debug('Calling Refresh Token endpoint with body: %o', req.body);
     try {
       const authServiceInstance = Container.get(AuthService);
-      const response = await authServiceInstance.refreshToken(req.body as IUserInputToken, req.ip);
+      const response = await authServiceInstance.refreshToken(req.body as TokenDto, req.ip);
       return res.status(200).json(response);
-    }catch (error) {
+    } catch (error) {
       logger.error('🔥 error: %o', error);
       return next(error);
     }
@@ -70,8 +69,8 @@ export default (app: Router) => {
 
   route.post('/revoke-token',
     request.revokeTokenSchema,
-    middleware.expressAuthentication('jwt'),
-    middleware.allow([UserRole.ADMIN, UserRole.GUEST]),
+    middleware.authMiddleware(),
+    middleware.allowMiddleware([UserRole.ADMIN, UserRole.GUEST]),
     async (req: Request, res: Response, next: NextFunction) => {
       const logger: Logger = Container.get('logger');
       logger.debug('Calling Revoke Token endpoint with body: %o', req.body);
@@ -84,7 +83,7 @@ export default (app: Router) => {
           authHeader = req.headers.authorization.split(' ')[1];
         }
         const authServiceInstance = Container.get(AuthService);
-        const response = await authServiceInstance.revokeToken(authHeader, req.body as IUserInputToken, req.ip);
+        const response = await authServiceInstance.revokeToken(authHeader, req.body as TokenDto, req.ip);
         return res.status(200).json(response);
       } catch (error) {
         logger.error('🔥 error: %o', error);
@@ -99,7 +98,7 @@ export default (app: Router) => {
       logger.debug('Calling Forgot Password endpoint with body: %o', req.body);
       try {
         const authServiceInstance = Container.get(AuthService);
-        const response = await authServiceInstance.forgotPassword(req.body as IUserInputEmail);
+        const response = await authServiceInstance.forgotPassword(req.body as ForgotPasswordDto);
         return res.status(200).json(response);
       } catch (error) {
         logger.error('🔥 error: %o', error);
@@ -114,7 +113,7 @@ export default (app: Router) => {
       logger.debug('Calling Reset Password endpoint with body: %o', req.body);
       try {
         const authServiceInstance = Container.get(AuthService);
-        const response = await authServiceInstance.resetPassword(req.body);
+        const response = await authServiceInstance.resetPassword(req.body as ResetPasswordDto);
         return res.status(200).json(response);
       } catch (error) {
         logger.error('🔥 error: %o', error);
@@ -123,8 +122,7 @@ export default (app: Router) => {
     });
 
   route.post('/2fa/generate',
-    middleware.expressAuthentication('jwt'),
-    middleware.attachCurrentUser,
+    middleware.authMiddleware(),
     async (req: Request, res: Response, next: NextFunction) => {
       logger.debug('Calling generate Two Factor Authentication Code');
       const userId = req.currentUser.id;
@@ -137,9 +135,34 @@ export default (app: Router) => {
       }
     });
 
+  route.post('/2fa/turn-on',
+    request.twoFactorAuthSchema,
+    middleware.authMiddleware(),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const response = await authServiceInstance.turnOnTwoFactorAuthentication(req.body as TwoFactorAuthenticationDto, req.currentUser);
+        return res.status(200).json(response);
+      } catch (error) {
+        logger.error('🔥 error: %o', error);
+        return next(error);
+      }
+    });
+
+  route.post('/2fa/authenticate',
+    request.twoFactorAuthSchema,
+    middleware.authMiddleware(true),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const response = await authServiceInstance.secondFactorAuthentication(req.body as TwoFactorAuthenticationDto, req.currentUser, req.ip);
+        return res.status(200).json(response);
+      } catch (error) {
+        logger.error('🔥 error: %o', error);
+        return next(error);
+      }
+    });
+
   route.get('/me',
-    middleware.expressAuthentication('jwt'),
-    middleware.attachCurrentUser,
+    middleware.authMiddleware(),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const response = await authServiceInstance.currentUser(req.currentUser)

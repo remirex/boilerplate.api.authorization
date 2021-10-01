@@ -6,7 +6,7 @@
 		"requestBodies": {},
 		"responses": {},
 		"schemas": {
-			"IUserInputDTO": {
+			"CreateUserDto": {
 				"properties": {
 					"email": {
 						"type": "string"
@@ -38,7 +38,7 @@
 				"type": "object",
 				"additionalProperties": false
 			},
-			"IUserInputToken": {
+			"TokenDto": {
 				"properties": {
 					"token": {
 						"type": "string"
@@ -50,7 +50,7 @@
 				"type": "object",
 				"additionalProperties": false
 			},
-			"IUserInputSignIn": {
+			"LogInDto": {
 				"properties": {
 					"email": {
 						"type": "string"
@@ -66,7 +66,7 @@
 				"type": "object",
 				"additionalProperties": false
 			},
-			"IUserInputEmail": {
+			"ForgotPasswordDto": {
 				"properties": {
 					"email": {
 						"type": "string"
@@ -94,6 +94,18 @@
 					"token",
 					"password",
 					"repeatPassword"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TwoFactorAuthenticationDto": {
+				"properties": {
+					"code": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"code"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -154,7 +166,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/IUserInputDTO"
+								"$ref": "#/components/schemas/CreateUserDto"
 							}
 						}
 					}
@@ -195,7 +207,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/IUserInputToken"
+								"$ref": "#/components/schemas/TokenDto"
 							}
 						}
 					}
@@ -240,7 +252,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/IUserInputSignIn"
+								"$ref": "#/components/schemas/LogInDto"
 							}
 						}
 					}
@@ -285,7 +297,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/IUserInputToken"
+								"$ref": "#/components/schemas/TokenDto"
 							}
 						}
 					}
@@ -330,7 +342,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/IUserInputToken"
+								"$ref": "#/components/schemas/TokenDto"
 							}
 						}
 					}
@@ -371,7 +383,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/IUserInputEmail"
+								"$ref": "#/components/schemas/ForgotPasswordDto"
 							}
 						}
 					}
@@ -470,6 +482,87 @@
 					}
 				],
 				"parameters": []
+			}
+		},
+		"/auth/2fa/turn-on": {
+			"post": {
+				"operationId": "TurnOnTwoFactorAuthentication",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"description": "We can create an endpoint that turns on the Two-Factor Authentication.",
+				"tags": [
+					"User"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/TwoFactorAuthenticationDto"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/2fa/authenticate": {
+			"post": {
+				"operationId": "SecondFactorAuthentication",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "boolean"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"User"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/TwoFactorAuthenticationDto"
+							}
+						}
+					}
+				}
 			}
 		}
 	},

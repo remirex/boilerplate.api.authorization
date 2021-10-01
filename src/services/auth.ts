@@ -1,14 +1,37 @@
 import {Inject, Service} from 'typedi';
-import { Post, Get, Route, Query, Body, Tags, Hidden, Security, Request } from 'tsoa';
+import {Body, Get, Hidden, Post, Query, Request, Route, Security, Tags} from 'tsoa';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 
 import EmailService from './emailService/email';
-import {ResetPasswordDto, CreateUserDto, LogInDto, ForgotPasswordDto, TokenDto} from '../interfaces/IUser';
+import {
+  CreateUserDto,
+  DataStoredInTokenDto,
+  ForgotPasswordDto,
+  LogInDto,
+  ResetPasswordDto,
+  TokenDto,
+  TwoFactorAuthenticationDto,
+} from '../interfaces/IUser';
+import UserWithThatEmailAlreadyExistsException from "../api/exceptions/UserWithThatEmailAlreadyExistsException";
+import UserWithThatEmailAlreadyRegisterButNotVerifiedException
+  from "../api/exceptions/UserWithThatEmailAlreadyRegisterButNotVerifiedException";
+import UserWithThatUsernameAlreadyExistsException from "../api/exceptions/UserWithThatUsernameAlreadyExistsException";
+import CannotCreateRecordException from "../api/exceptions/CannotCreateRecordException";
+import WrongVerifyTokenException from "../api/exceptions/WrongVerifyTokenException";
+import NotVerifiedException from "../api/exceptions/NotVerifiedException";
+import UserNotFoundException from "../api/exceptions/UserNotFoundException";
+import WrongTokenException from "../api/exceptions/WrongTokenException";
+import NotAllowedException from "../api/exceptions/NotAllowedException";
+import WrongTwoFactorAuthenticationCodeException from "../api/exceptions/WrongTwoFactorAuthenticationCodeException";
+import WrongCredentialException from "../api/exceptions/WrongCredentialException";
+import {IUser} from "../interfaces/IUser";
 import {EmailTemplates, UserRole, UserStatus} from '../interfaces/types';
 import config from '../config';
+import logger from "../loaders/logger";
+import User from "../models/user";
 
 @Tags("User")
 @Route("/auth")
@@ -20,7 +43,8 @@ export default class AuthService {
     @Inject('logger') private logger,
     @Inject('password') private password,
     private mailer: EmailService,
-  ) {}
+  ) {
+  }
 
   /**
    * Register a new user account and send a verification email.
@@ -45,7 +69,7 @@ export default class AuthService {
         }
       );
 
-      throw 'Register but not verified, please check your email for verification instructions';
+      throw new UserWithThatEmailAlreadyRegisterButNotVerifiedException();
     }
 
     if (user) {
@@ -56,11 +80,11 @@ export default class AuthService {
         user
       );
 
-      throw 'You are already registered';
+      throw new UserWithThatEmailAlreadyExistsException(userData.email);
     }
 
-    const username = await this.userModel.findOne({ username: userData.username });
-    if (username) throw `Username ${userData.username} is already exist in database.`;
+    const username = await this.userModel.findOne({username: userData.username});
+    if (username) throw new UserWithThatUsernameAlreadyExistsException(userData.username);
 
     const isFirstAccount = (await this.userModel.countDocuments({})) === 0;
 
@@ -70,14 +94,13 @@ export default class AuthService {
 
     const userRecord = await this.userModel.create({
       ...userData,
-      verificationToken: {
-        token: verifyToken,
-        expires: expireToken,
-      },
+      verificationToken: isFirstAccount ? {} : {token: verifyToken, expires: expireToken},
       role: isFirstAccount ? UserRole.ADMIN : UserRole.GUEST,
+      status: isFirstAccount ? UserStatus.ACTIVE : UserStatus.INACTIVE,
+      verified: isFirstAccount ? Date.now() : null,
     });
 
-    if (!userRecord) throw 'User cannot be created';
+    if (!userRecord) throw new CannotCreateRecordException();
 
     this.logger.silly('Sending verify email');
     await this.mailer.sendTemplateEmail(
@@ -102,17 +125,17 @@ export default class AuthService {
 
     const user = await this.userModel.findOne({
       'verificationToken.token': verifyEmailData.token,
-      'verificationToken.expires': { $gt: Date.now() },
+      'verificationToken.expires': {$gt: Date.now()},
     });
 
-    if (!user) throw 'Invalid token';
+    if (!user) throw new WrongVerifyTokenException();
 
     user.verified = Date.now();
     user.status = UserStatus.ACTIVE;
     user.verificationToken = {} as any;
     user.save();
 
-    return { message: 'Verification successful, you can now login' };
+    return {message: 'Verification successful, you can now login'};
   }
 
   /**
@@ -123,26 +146,40 @@ export default class AuthService {
    */
   @Post("/signin")
   public async signin(@Body() logInData: LogInDto, @Query() @Hidden() ipAddress?: string) {
-    const user = await this.userModel.findOne({ email: logInData.email });
+    const user = await this.userModel.findOne({email: logInData.email});
 
-    if (!user) throw 'User not registered.';
-
-    if (user.status !== UserStatus.ACTIVE) throw 'User not verified yet';
-
-    this.logger.silly('Checking password');
-    const validPassword = await this.password.compare(user.password, logInData.password);
-    if (!validPassword) throw 'Invalid password';
-    this.logger.silly('Password is valid!');
-
-    this.logger.silly('Generating JWT');
-    const jwtToken = await AuthService.generateJwtToken(user);
-    const refreshToken = await this.generateRefreshToken(user, ipAddress!);
-
-    return {
-      auth: true,
-      jwtToken,
-      refreshToken: refreshToken.token,
-    };
+    if (user) {
+      if (user.status === UserStatus.ACTIVE) {
+        this.logger.silly('Checking password');
+        const validPassword = await this.password.compare(user.password, logInData.password);
+        if (validPassword) {
+          this.logger.silly('Password is valid!');
+          this.logger.silly('Generating JWT');
+          const jwtToken = await AuthService.generateJwtToken(user);
+          const refreshToken = await this.generateRefreshToken(user, ipAddress!);
+          if (user.isTwoFactorAuthenticationEnabled) {
+            return {
+              auth: true,
+              isTwoFactorAuthenticationEnabled: true,
+              jwtToken,
+              refreshToken: refreshToken.token,
+            };
+          } else {
+            return {
+              auth: true,
+              jwtToken,
+              refreshToken: refreshToken.token,
+            };
+          }
+        } else {
+          throw new WrongCredentialException();
+        }
+      } else {
+        throw new NotVerifiedException()
+      }
+    } else {
+      throw new WrongCredentialException();
+    }
   }
 
   /**
@@ -190,13 +227,13 @@ export default class AuthService {
     const findToken = await this.getRefreshToken(revokeTokenData.token);
 
     const isOwner = await this.tokenOwner(findToken, authHeader!);
-    if (!isOwner) throw 'User is not owner for this token';
+    if (!isOwner) throw new NotAllowedException();
 
     findToken.revoked = Date.now();
     findToken.revokedByIp = ipAddress!;
     await findToken.save();
 
-    return { message: 'Token revoked' };
+    return {message: 'Token revoked'};
   }
 
   /**
@@ -207,10 +244,10 @@ export default class AuthService {
   public async forgotPassword(
     @Body() forgotPasswordData: ForgotPasswordDto
   ): Promise<{ message: string }> {
-    const user = await this.userModel.findOne({ email: forgotPasswordData.email });
+    const user = await this.userModel.findOne({email: forgotPasswordData.email});
 
     // always return ok response to prevent email enumeration
-    if (!user) throw 'User not found';
+    if (!user) throw new UserNotFoundException();
 
     user.resetToken = {
       token: AuthService.randomTokenString(),
@@ -229,7 +266,7 @@ export default class AuthService {
       }
     )
 
-    return { message: 'Please check your email for password reset instructions' };
+    return {message: 'Please check your email for password reset instructions'};
   }
 
   /**
@@ -239,18 +276,18 @@ export default class AuthService {
   @Post('/reset-password')
   public async resetPassword(
     @Body() resetPasswordData: ResetPasswordDto
-  ): Promise<{ message: string}> {
+  ): Promise<{ message: string }> {
     const user = await this.userModel.findOne({
       'resetToken.token': resetPasswordData.token,
-      'resetToken.expires': { $gt: Date.now() },
+      'resetToken.expires': {$gt: Date.now()},
     });
 
-    if (!user) throw 'Invalid token';
+    if (!user) throw new WrongTokenException();
 
     const hash = await this.password.toHash(resetPasswordData.password);
 
     await this.userModel.updateOne(
-      { 'resetToken.token': resetPasswordData.token },
+      {'resetToken.token': resetPasswordData.token},
       {
         $set: {
           password: hash,
@@ -260,7 +297,7 @@ export default class AuthService {
       },
     );
 
-    return { message: 'Password reset successful, you can now login' };
+    return {message: 'Password reset successful, you can now login'};
   }
 
   /**
@@ -285,11 +322,53 @@ export default class AuthService {
       name: config.twoFactorAppName,
     });
 
-    this.userModel.findByIdAndUpdate(userId, {
+    await this.userModel.findByIdAndUpdate(userId, {
       twoFactorAuthenticationCode: secretCode.base32,
     });
 
     return QRCode.toFileStream(response, secretCode.otpauth_url!);
+  }
+
+  /**
+   * We can create an endpoint that turns on the Two-Factor Authentication.
+   * @param codeData
+   * @param user
+   */
+  @Security("jwt")
+  @Post('/2fa/turn-on')
+  public async turnOnTwoFactorAuthentication(@Body() codeData: TwoFactorAuthenticationDto, @Request() user: IUser): Promise<{ message: string }> {
+    const isCodeValid = await AuthService.verifyTwoFactorAuthenticationCode(codeData.code, user);
+
+    if (isCodeValid) {
+      await this.userModel.findByIdAndUpdate({_id: user.id}, {
+        isTwoFactorAuthenticationEnabled: true,
+      });
+      return {message: 'Successfully turn on two factor auth'};
+    }
+    return new WrongTwoFactorAuthenticationCodeException();
+  }
+
+  /**
+   * The user sends a valid code to the endpoint and is given a new JWT and Refresh token with full access
+   * @param codeData
+   * @param user
+   * @param ipAddress
+   */
+  @Security("jwt")
+  @Post('/2fa/authenticate')
+  public async secondFactorAuthentication(@Body() codeData: TwoFactorAuthenticationDto, @Request() user: IUser, @Query() @Hidden() ipAddress?: string) {
+    const isCodeValid = await AuthService.verifyTwoFactorAuthenticationCode(codeData.code, user);
+
+    if (isCodeValid) {
+      const jwtToken = await AuthService.generateJwtToken(user, true);
+      const refreshToken = await this.generateRefreshToken(user, ipAddress!);
+      return {
+        auth: true,
+        jwtToken,
+        refreshToken: refreshToken.token,
+      };
+    }
+    return new WrongTwoFactorAuthenticationCodeException();
   }
 
   // helpers
@@ -297,11 +376,19 @@ export default class AuthService {
     return crypto.randomBytes(40).toString('hex');
   }
 
-  private static async generateJwtToken(account: { id: string; role: string }) {
-    // create a jwt token containing the user id that expires in 15 minutes
-    return jwt.sign({ sub: account.id, id: account.id, role: account.role }, config.jwtSecret, {
-      expiresIn: '15m',
-    });
+  private static async generateJwtToken(account: { id: string; role: string }, isSecondFactorAuthenticated = false) {
+    const dataStoredInToken: DataStoredInTokenDto = {
+      id: account.id,
+      role: account.role,
+      isSecondFactorAuthenticated,
+    };
+    // create a jwt token containing the user id that expires in 1 hour
+    return jwt.sign(
+      dataStoredInToken,
+      config.jwtSecret,
+      {
+        expiresIn: '1h',
+      });
   }
 
   private async generateRefreshToken(account: { id: string }, ipAddress: string) {
@@ -315,8 +402,8 @@ export default class AuthService {
   }
 
   private async getRefreshToken(token: string) {
-    const refreshToken = await this.refreshTokenModel.findOne({ token }).populate('User');
-    if (!refreshToken || !refreshToken.isActive) throw 'invalid token';
+    const refreshToken = await this.refreshTokenModel.findOne({token}).populate('User');
+    if (!refreshToken || !refreshToken.isActive) throw new WrongTokenException();
 
     return refreshToken;
   }
@@ -325,12 +412,20 @@ export default class AuthService {
     const decoded: any = jwt.decode(authHeader);
 
     const account = await this.userModel.findById(decoded.id);
-    const refreshTokens = await this.refreshTokenModel.find({ account: account!._id });
+    const refreshTokens = await this.refreshTokenModel.find({account: account!._id});
 
     const found = refreshTokens.some(item => {
       return item.token === refreshToken.token;
     });
 
     return !!found;
+  }
+
+  private static async verifyTwoFactorAuthenticationCode(code: string, user: IUser) {
+    return speakeasy.totp.verify({
+      secret: user.twoFactorAuthenticationCode,
+      encoding: 'base32',
+      token: code,
+    });
   }
 }
