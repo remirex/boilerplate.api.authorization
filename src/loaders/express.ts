@@ -5,7 +5,7 @@ import swaggerUi from "swagger-ui-express";
 
 import routes from '../api';
 import config from '../config';
-import { errorHandler } from '../api/middlewares/errorHandler';
+import errorMiddleware from "../api/middlewares/error";
 
 export default ({ app }: { app: express.Application }) => {
   /**
@@ -52,5 +52,5 @@ export default ({ app }: { app: express.Application }) => {
   app.use(config.api.prefix, routes());
 
   // Error handler
-  app.use(errorHandler);
+  app.use(errorMiddleware);
 }

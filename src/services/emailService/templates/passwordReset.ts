@@ -14,12 +14,12 @@ export const passwordResetEmail = ({ username, token }: { token: string; usernam
         <h1>Change your password</h1>
         <p>You are receiving this because you (or someone else) requested the reset of the ${username} f team app user account.</p>
         <p>Please click on the following link, or paste this into your browser to complete the process:</p>
-        <p><b><a href="${config.clientUrl}/password/reset?token=${token}">reset password link</a> </b></p>
+        <p><b><a href="${config.clientUrl}/password/reset?token=${token}" style="color: #55237d">reset password link</a> </b></p>
         <p>Reset link expire after 24 hours.</p>
         <p>If you didn't request this change, ignore this
         <br>message and your password will remain the<br>
         same.</p>
-        <p>If you have any questions please reply to this email or contact us at <a href="mailto:mirkoj@software-nation.com">mirkoj@software-nation.com</a></p>
+        <p>If you have any questions please reply to this email or contact us at <a href="mailto:mirkoj@software-nation.com" style="color: #55237d">mirkoj@software-nation.com</a></p>
         <p>Thanks,<br />F Team</p>
       </div>
       <div style="display: block; text-align: center; padding: 5px; background-color: #55237d">

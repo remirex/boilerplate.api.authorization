@@ -44,6 +44,10 @@ const User = new mongoose.Schema({
     type: String,
     default: null,
   },
+  isTwoFactorAuthenticationEnabled: {
+    type: Boolean,
+    default: false,
+  },
   verificationToken: {
     token: String,
     expires: Date
@@ -60,13 +64,14 @@ const User = new mongoose.Schema({
     virtuals: true,
     transform(doc, ret) {
       // remove these props when object is serialized
-      delete ret._id;
       delete ret.__v;
       delete ret.password;
       delete ret.verificationToken;
       delete ret.resetToken;
+      delete ret.twoFactorAuthenticationCode;
       // transform
       ret.id = ret._id;
+      delete ret._id;
     }
   }
 });
