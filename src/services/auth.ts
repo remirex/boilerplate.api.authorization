@@ -53,8 +53,9 @@ export default class AuthService {
     const user = await this.userModel.findOne({email: userData.email});
 
     if (user && user.status === UserStatus.INACTIVE) {
-      user.verificationToken.expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      user.save();
+      await this.userModel.findByIdAndUpdate(user.id, {
+        'verificationToken.expires': new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
 
       await this.mailer.sendTemplateEmail(
         user.email,
@@ -91,11 +92,10 @@ export default class AuthService {
 
     const userRecord = await this.userModel.create({
       ...userData,
-      verificationToken: {
-        token: verifyToken,
-        expires: expireToken,
-      },
+      verificationToken: isFirstAccount ? undefined : { token: verifyToken, expires: expireToken },
       role: isFirstAccount ? UserRole.ADMIN : UserRole.GUEST,
+      status: isFirstAccount ? UserStatus.ACTIVE : UserStatus.INACTIVE,
+      verified: isFirstAccount ? Date.now() : undefined,
     });
 
     if (!userRecord) throw new CannotCreateRecordException();
@@ -128,10 +128,11 @@ export default class AuthService {
 
     if (!user) throw new WrongVerifyTokenException();
 
-    user.verified = Date.now();
-    user.status = UserStatus.ACTIVE;
-    user.verificationToken = {} as any;
-    user.save();
+    await this.userModel.findByIdAndUpdate(user.id, {
+      verified: Date.now(),
+      status: UserStatus.ACTIVE,
+      verificationToken: undefined,
+    });
 
     return { message: 'Verification successful, you can now login' };
   }
