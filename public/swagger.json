@@ -589,6 +589,152 @@
 					}
 				}
 			}
+		},
+		"/images/upload": {
+			"post": {
+				"operationId": "UploadFile",
+				"responses": {
+					"204": {
+						"description": "No content"
+					}
+				},
+				"description": "Upload image, only jpeg, jpe and png. max file size 2MB",
+				"tags": [
+					"File"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"file": {
+										"type": "string",
+										"format": "binary"
+									}
+								},
+								"required": [
+									"file"
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/images/all": {
+			"get": {
+				"operationId": "GetAllPhotos",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"description": "Return all photos",
+				"tags": [
+					"File"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/images/single/{filename}": {
+			"get": {
+				"operationId": "GetSingleFile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"description": "Image details",
+				"tags": [
+					"File"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "filename",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/images/image/{filename}": {
+			"get": {
+				"operationId": "GetActualFile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"description": "Get actual image",
+				"tags": [
+					"File"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "filename",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/images/delete/{id}": {
+			"delete": {
+				"operationId": "DeleteFile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"description": "Delete file",
+				"tags": [
+					"File"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
 		}
 	},
 	"servers": [
