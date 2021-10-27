@@ -1,7 +1,7 @@
 {
   "entryFile": "src/app.ts",
   "noImplicitAdditionalProperties": "throw-on-extras",
-  "controllerPathGlobs": ["src/services/auth.ts"],
+  "controllerPathGlobs": ["src/services/auth.ts", "src/services/fileSystem/file.ts"],
   "spec": {
     "outputDirectory": "public",
     "basePath": "/api/v1",

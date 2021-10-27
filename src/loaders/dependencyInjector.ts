@@ -4,6 +4,9 @@ import nodemailer from 'nodemailer';
 import LoggerInstance from './logger';
 import Password from "../services/password";
 import config from '../config';
+import mongoose from "mongoose";
+
+//const gridStream = require('gridfs-stream');
 
 export default ({ mongoConnection, models}: { mongoConnection: any; models: { name: string; model: any }[] }) => {
   try {
@@ -31,7 +34,13 @@ export default ({ mongoConnection, models}: { mongoConnection: any; models: { na
     // Password instance
     Container.set('password', Password);
 
-
+    // gfs Stream
+    // Container.set('gfs',
+    //   mongoConnection.once('open', () => {
+    //     // initialize our stream
+    //     gridStream(mongoConnection.db, mongoose.mongo).collection('documents');
+    //   })
+    // );
   } catch (err) {
     LoggerInstance.error('Error on dependency injector loader: ', err);
     throw err;

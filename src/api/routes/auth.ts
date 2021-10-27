@@ -15,6 +15,22 @@ export default (app: Router) => {
   const logger: Logger = Container.get('logger');
   const authServiceInstance = Container.get(AuthService);
 
+  route.post('/upload', async (req: Request, res: Response, next: NextFunction) => {
+    const logger: Logger = Container.get('logger');
+    logger.debug('Calling Upload File endpoint');
+    try {
+      await middleware.uploadFileMiddleware(req, res);
+      if (req.file === undefined) return res.status(400).json({ message: 'Please upload a file.' });
+
+      return res.status(200).json({ message: `Uploaded the file successfully: ${req.file.originalname}` });
+    } catch (err) {
+      logger.error('Error when trying upload file: ', err);
+      if (err.code === 'LIMIT_FILE_SIZE')
+        return res.status(500).json({ message: 'File size cannot be larger than 2MB.' });
+      return next(err);
+    }
+  });
+
   route.post('/signup', request.signUpSchema, async (req: Request, res: Response, next: NextFunction) => {
     const logger: Logger = Container.get('logger');
     logger.debug('Calling SignUp endpoint with body: %o', req.body);

@@ -11,6 +11,7 @@ if (envFound.error) {
 }
 
 export default {
+  appName: process.env.APP_NAME,
   /**
    * port
    */
@@ -24,6 +25,8 @@ export default {
   mongoHostname: process.env.MONGO_HOSTNAME,
   mongoPort: process.env.MONGO_PORT,
   mongoDatabase: process.env.MONGO_DB,
+
+  databaseURL: process.env.MONGODB_URI,
 
   /**
    * used by winston logger

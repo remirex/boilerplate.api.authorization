@@ -11,6 +11,7 @@ declare global {
   namespace Express {
     export interface Request {
       currentUser: IUser & Document;
+      errorUpload: string;
     }
   }
 }
